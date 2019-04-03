@@ -1,0 +1,13 @@
+#!/bin/bash
+
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+source $SCRIPTPATH/config
+
+test_token
+
+curl -s -S -X "PUT" \
+    "https://api.spotify.com/v1/me/player/pause" \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $access_token" \
+    -H "Content-Length: 0"

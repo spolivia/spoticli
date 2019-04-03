@@ -1,0 +1,82 @@
+#!/bin/bash
+
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+source $SCRIPTPATH/config
+
+##################################
+### if config file exists : break
+##################################
+
+if [ ! -d "$token_prefix" ]; then
+    echo "Creating $token_prefix ..."
+    mkdir -p "$token_prefix" 
+fi
+
+if [ -e "$token_file" ]; then
+    echo "A token file was found : $token_file"
+    echo "Please remove it manually if you want to reauthenticate"
+    exit 1 
+fi
+
+###################
+### Generate state
+###################
+
+state="$(head -c 2050 /dev/urandom | shasum | cut -f 1 -d " ")"
+
+######################
+### Send auth request
+######################
+
+p_1="client_id=${client_id}"
+p_2="response_type=code" 
+p_3="redirect_uri=${redirect_uri}" 
+p_4="scope=user-read-recently-played user-top-read user-library-modify user-library-read playlist-read-private playlist-modify-public playlist-modify-private playlist-read-collaborative user-read-email user-read-birthdate user-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing app-remote-control streaming user-follow-read user-follow-modify"
+p_5="state=$state" 
+
+
+p_3="$(echo "$p_3" | sed -e "s/ /%20/g;s/:/%3A/g;s/\//%2F/g")"
+p_4="$(echo "$p_4" | sed -e "s/ /%20/g;s/:/%3A/g;s/\//%2F/g")"
+
+url="https://accounts.spotify.com/fr/authorize?${p_1}&${p_2}&${p_3}&${p_4}&${p_5}"
+
+echo "You will now be redirected to spotify ..."
+
+$browser $url
+
+#######################
+### Retrieve Tokens
+#######################
+
+code=""
+
+while [ "$code" = "" ]
+do
+    sleep 3
+    echo "Trying to retrieve code ..."
+    retrieve_url="${redirect_uri}/state.${state}.txt"
+    code="$(wget -qO - $retrieve_url )"
+done
+
+echo "Code retrieved."
+
+token_response="$(curl -s -S \
+    -d grant_type=authorization_code \
+    -d "code=${code}" \
+    -d "${p_3}" \
+    -d "client_id=${client_id}" \
+    -d "client_secret=${client_secret}"\
+    https://accounts.spotify.com/api/token)"
+
+access_token="$(echo $token_response | cut -d "," -f 1 | cut -d ":" -f 2 | sed -e 's/\"//g' )"
+refresh_token="$(echo $token_response | cut -d "," -f 4 | cut -d ":" -f 2 | sed -e 's/\"//g' )"
+timestamp="$(date +%s)"
+#echo $token_response
+
+echo "#!/bin/bash" > $token_file
+echo "timestamp=${timestamp}" >> $token_file
+echo "access_token=$access_token" >> $token_file
+echo "refresh_token=$refresh_token" >> $token_file
+
+curl -s -S $redirect_uri"/index.php?erase=1&"${p_5}
+

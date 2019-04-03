@@ -1,0 +1,33 @@
+#!/bin/bash
+
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+source $SCRIPTPATH/config
+
+test_token
+
+if [[ "$1" == "spotify:album"* ]]; then
+    msg="{\"context_uri\":\"$1\",\"offset\":{\"position\":5},\"position_ms\":0}" 
+else
+    if [[ "$1" == "spotify:artist"* ]]; then
+        msg="{\"context_uri\":\"$1\",\"offset\":{\"position\":5},\"position_ms\":0}" 
+    else
+        if [[ "$1" == "spotify:playlist"* ]]; then
+            msg="{\"context_uri\":\"$1\",\"offset\":{\"position\":5},\"position_ms\":0}" 
+        else
+            if [[ "$1" == "spotify:track"* ]]; then
+                msg="{\"uris\":[\"$1\"]}" 
+            else
+                echo "Malformed uri ... same player try again"
+                exit 0
+            fi
+        fi
+    fi
+fi
+
+
+curl -s -S -X "PUT" "https://api.spotify.com/v1/me/player/play" \
+    --data "$msg" \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $access_token" 
+
