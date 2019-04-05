@@ -13,17 +13,12 @@ control the official client, spotifyd, your phone, or your favorite connected sp
 - Download, 
 - Unzip to your favorite folder 
 - Add the folder to your PATH.
-- Edit the config file to suit your need ( at least the browser variablr )  
 - You're done.
 
 On first run, you must first start spoticli_auth to grant spoticli
 permission to access your account. A file called tokens will be generated
-and stored in ~/.spoticli : don't share it with anybody since it would allow
+and stored in ~/.local/spoticli : don't share it with anybody since it would allow
 to access your spotify account.
-
-The spotify auth process involves a website. You can use mine (default) or register
-your own copy of website and app on the spotify developer site. You'll find
-in the "web" folder a copy of the php file installed on my server.
 
 ## Usage
 
@@ -44,3 +39,8 @@ Available commands are :
 - spoticli_get_devices
 - spoticli_play
 - spoticli_transfer_to_device
+
+## Extra
+
+You can override the default settings in spoticli_common by mean of a ~/.local/spoticli/config file,
+if you want your own spotify application or a specific browser command.
