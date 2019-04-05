@@ -2,7 +2,7 @@
 set -o nounset
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-source $SCRIPTPATH/config
+source $SCRIPTPATH/spoticli_functions
 
 ##################################
 ### if config file exists : break
@@ -39,7 +39,7 @@ p_5="state=$state"
 p_3="$(echo "$p_3" | sed -e "s/ /%20/g;s/:/%3A/g;s/\//%2F/g")"
 p_4="$(echo "$p_4" | sed -e "s/ /%20/g;s/:/%3A/g;s/\//%2F/g")"
 
-url="https://accounts.spotify.com/fr/authorize?${p_1}&${p_2}&${p_3}&${p_4}&${p_5}"
+url="${spotify_auth}/fr/authorize?${p_1}&${p_2}&${p_3}&${p_4}&${p_5}"
 
 echo "You will now be redirected to spotify ..."
 
@@ -54,19 +54,17 @@ code=`socat TCP4-LISTEN:8080 EXEC:$SCRIPTPATH/spoticli_authhttpd 2>&1 >/dev/null
 if [[ ! -z $code ]]; then
     echo "Code retrieved: '$code'"
 
-    token_response="$(curl -s -S \
+    token_response=$(curl -s -S \
         -d grant_type=authorization_code \
         -d "code=${code}" \
         -d "${p_3}" \
         -d "client_id=${client_id}" \
         -d "client_secret=${client_secret}"\
-        https://accounts.spotify.com/api/token)"
-
-    echo $token_response
+        ${spotify_auth}/api/token)
 
     error=$(echo $token_response | jq -r .error)
 
-    if [[ ! -z $error ]]; then
+    if [[ $error != "null" ]]; then
         echo "Error while getting access token:" >&2
         echo " server returned: $error" >&2
         exit -1

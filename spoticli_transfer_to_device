@@ -1,12 +1,8 @@
 #!/bin/bash
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-source $SCRIPTPATH/config
+source $SCRIPTPATH/spoticli_common
 
 test_token
 
-curl -s -S -X "PUT" "https://api.spotify.com/v1/me/player" \
-    -H "Content-Type: application/json" \
-    -H "Accept: application/json" \
-    -H "Authorization: Bearer $access_token" \
-    --data "{\"device_ids\":[\"$1\"]}"
+call_api PUT "/me/player" "{\"device_ids\":[\"$1\"]}"

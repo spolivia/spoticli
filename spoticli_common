@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# defaults configuration values, could be overriden in local config
+
+client_id="4780f1b391a945f584286351b5d0a443"
+client_secret="a1021e823dd74a6caa59b5df23b698cc"
+
+spotify_auth="https://accounts.spotify.com"
+spotify_api="https://api.spotify.com/v1"
+
+browser="xdg-open"
+local_prefix="$HOME/.local/spoticli"
+
+#################################################################
+
+# Read local configuration if available
+
+[ -e $local_prefix/config ] && source $local_prefix/config
+
+#################################################################
+
+# Read token if available 
+token_file="${local_prefix}/tokens"
+
+[ -e $token_file ] && source $token_file
+
+#################################################################
+
+test_token() {
+
+    if [ $(($(date +%s)-$timestamp)) -gt 3000 ]
+    then
+        echo "Refreshing token ..."
+        source spoticli_auth_refresh
+    fi
+
+}
+
+call_api() {
+    # Arg1: method (PUT/GET/POST)
+    # Arg2: uri
+    # Arg3: optionnal data
+
+    if [[ $# -gt 2 ]]
+    then
+        curl -s -S -X "$1" \
+            "${spotify_api}$2" \
+            -H "Accept: application/json" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $access_token" \
+            --data "$3" | jq .
+    else
+        curl -s -S -X "$1" \
+            "${spotify_api}$2" \
+            -H "Accept: application/json" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $access_token" \
+            -H "Content-Length: 0" | jq .
+    fi
+}
+
+#################################################################
+
+# Test necessary tools
+
+if [[ ! -x $(which socat) ]]; then
+    echo "Missing 'socat' utility, needed for the authorisation process !" >&2
+    exit -1;
+fi
+
+if [[ ! -x $(which curl) ]]; then
+    echo "Missing 'curl' utility, needed for well everything !" >&2
+    exit -1;
+fi
+
+if [[ ! -x $(which jq) ]]; then
+    echo "Missing 'jq' utility, needed for well everything !" >&2
+    exit -1;
+fi
+
+
