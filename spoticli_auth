@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o nounset
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 source $SCRIPTPATH/config
@@ -30,7 +31,7 @@ state="$(head -c 2050 /dev/urandom | shasum | cut -f 1 -d " ")"
 
 p_1="client_id=${client_id}"
 p_2="response_type=code" 
-p_3="redirect_uri=${redirect_uri}" 
+p_3="redirect_uri=http://localhost:8080/spoticli"
 p_4="scope=user-read-recently-played user-top-read user-library-modify user-library-read playlist-read-private playlist-modify-public playlist-modify-private playlist-read-collaborative user-read-email user-read-birthdate user-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing app-remote-control streaming user-follow-read user-follow-modify"
 p_5="state=$state" 
 
@@ -48,35 +49,37 @@ $browser $url
 ### Retrieve Tokens
 #######################
 
-code=""
+code=`socat TCP4-LISTEN:8080 EXEC:$SCRIPTPATH/spoticli_authhttpd 2>&1 >/dev/null`
 
-while [ "$code" = "" ]
-do
-    sleep 3
-    echo "Trying to retrieve code ..."
-    retrieve_url="${redirect_uri}/state.${state}.txt"
-    code="$(wget -qO - $retrieve_url )"
-done
+if [[ ! -z $code ]]; then
+    echo "Code retrieved: '$code'"
 
-echo "Code retrieved."
+    token_response="$(curl -s -S \
+        -d grant_type=authorization_code \
+        -d "code=${code}" \
+        -d "${p_3}" \
+        -d "client_id=${client_id}" \
+        -d "client_secret=${client_secret}"\
+        https://accounts.spotify.com/api/token)"
 
-token_response="$(curl -s -S \
-    -d grant_type=authorization_code \
-    -d "code=${code}" \
-    -d "${p_3}" \
-    -d "client_id=${client_id}" \
-    -d "client_secret=${client_secret}"\
-    https://accounts.spotify.com/api/token)"
+    echo $token_response
 
-access_token="$(echo $token_response | cut -d "," -f 1 | cut -d ":" -f 2 | sed -e 's/\"//g' )"
-refresh_token="$(echo $token_response | cut -d "," -f 4 | cut -d ":" -f 2 | sed -e 's/\"//g' )"
-timestamp="$(date +%s)"
-#echo $token_response
+    error=$(echo $token_response | jq -r .error)
 
-echo "#!/bin/bash" > $token_file
-echo "timestamp=${timestamp}" >> $token_file
-echo "access_token=$access_token" >> $token_file
-echo "refresh_token=$refresh_token" >> $token_file
+    if [[ ! -z $error ]]; then
+        echo "Error while getting access token:" >&2
+        echo " server returned: $error" >&2
+        exit -1
+    fi
 
-curl -s -S $redirect_uri"/index.php?erase=1&"${p_5}
+    access_token=$(echo $token_response | jq -r .access_token)
+    refresh_token=$(echo $token_response | jq -r .refresh_token)
+    timestamp="$(date +%s)"
 
+    echo "#!/bin/bash" > $token_file
+    echo "timestamp=${timestamp}" >> $token_file
+    echo "access_token=$access_token" >> $token_file
+    echo "refresh_token=$refresh_token" >> $token_file
+else
+    echo "Error while retrieving auth code" >&2
+fi
