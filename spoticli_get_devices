@@ -1,12 +1,8 @@
 #!/bin/bash
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-source $SCRIPTPATH/config
+source $SCRIPTPATH/spoticli_common
 
 test_token
 
-curl -s -S -X "GET" \
-    "https://api.spotify.com/v1/me/player/devices" \
-    -H "Accept: application/json" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $access_token"
+call_api GET "/me/player/devices"
