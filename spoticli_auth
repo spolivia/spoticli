@@ -2,15 +2,15 @@
 set -o nounset
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-source $SCRIPTPATH/spoticli_functions
+source $SCRIPTPATH/spoticli_common
 
 ##################################
 ### if config file exists : break
 ##################################
 
-if [ ! -d "$token_prefix" ]; then
-    echo "Creating $token_prefix ..."
-    mkdir -p "$token_prefix" 
+if [ ! -d "$local_prefix" ]; then
+    echo "Creating $local_prefix ..."
+    mkdir -p "$local_prefix" 
 fi
 
 if [ -e "$token_file" ]; then
