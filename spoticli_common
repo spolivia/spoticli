@@ -41,24 +41,23 @@ call_api() {
     # Arg2: uri
     # Arg3: optionnal data
 
+    declare -a curlopt=(--silent)
+    curlopt+=(--show-error)
+
+    curlopt+=(--request $1)
+    curlopt+=(${spotify_api}$2)
+    curlopt+=(--header "Accept: application/json")
+    curlopt+=(--header "Content-Type: application/json")
+    curlopt+=(--header "Authorization: Bearer $access_token")
+
     if [[ $# -gt 2 ]]
     then
-        curl -s -S -X "$1" \
-            "${spotify_api}$2" \
-            -H "Accept: application/json" \
-            -H "Accept: application/json" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $access_token" \
-            --data "$3" | jq .
+        curlopt+=(--data $3)
     else
-        curl -s -S -X "$1" \
-            "${spotify_api}$2" \
-            -H "Accept: application/json" \
-            -H "Accept: application/json" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $access_token" \
-            -H "Content-Length: 0" | jq .
+        [[ "GET" != $1 ]] && curlopt+=(--header "Content-Length: 0")
     fi
+
+    curl "${curlopt[@]}" | jq .
 }
 
 #################################################################
